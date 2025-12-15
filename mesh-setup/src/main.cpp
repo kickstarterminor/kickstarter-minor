@@ -1,9 +1,8 @@
 #include <Arduino.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/semphr.h>
 #include "MuxScanner.h"
 #include "SensorMatrix.h"
+#include "Mapper.h"
+#include "BinaryOutput.h"
 #include <stdlib.h>
 
 const int rows[] = {4, 3, 3}; // change this to modify sensor layout
@@ -23,76 +22,47 @@ const int SCAN_INTERVAL_MS = 200;   // time between full scans
 MuxScanner* muxScanner = nullptr;
 SensorMatrix* sensorMatrix = nullptr;
 
-SemaphoreHandle_t readingsMutex = NULL;
-TaskHandle_t serialTaskHandle = NULL;
-
 int* sensorValues = nullptr;
 uint8_t totalSensors = 0;
 
+unsigned long lastScanMs = 0;
 
-void sensorTask(void* pvParameters) {
-  (void)pvParameters;
-  for (;;) {
-    // iterate over sensor ids (mapped to mux channels by SensorMatrix)
-    for (uint8_t id = 0; id < totalSensors; ++id) {
-      int raw = muxScanner->readChannel(id);
+void performScanAndPrint() {
+  if (totalSensors == 0) return;
 
-      if (xSemaphoreTake(readingsMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-        sensorValues[id] = raw;
-        xSemaphoreGive(readingsMutex);
-      }
-      // small pause to avoid hammering the ADC/MUX
-      vTaskDelay(pdMS_TO_TICKS(2));
-    }
-
-    // notify serial printer that a new frame is ready
-    if (serialTaskHandle) {
-      xTaskNotifyGive(serialTaskHandle);
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(SCAN_INTERVAL_MS));
+  // iterate over sensor ids (mapped to mux channels by SensorMatrix)
+  for (uint8_t id = 0; id < totalSensors; ++id) {
+    int raw = muxScanner->readChannel(id);
+    sensorValues[id] = raw;
+    // small pause to avoid hammering the ADC/MUX
+    delay(2);
   }
+
+  // Send compact binary frame (no timestamp by default).
+  // Frame layout and decoding notes are documented in include/BinaryOutput.h.
+  // We use grid_id "A1" and node_id "N03" (see id_block in the header).
+  const char* gridId = "A1";
+  const char* nodeId = "N03";
+  const float vref = 3.3f;
+  const uint32_t adcMax = 4095u;
+
+  // Only send up to 12 channels (frame defines 12 float slots). If fewer sensors
+  // exist, the remaining floats are padded with 0.0. If more exist, we send the
+  // first 12 values.
+  uint8_t sendCount = (totalSensors > 12) ? 12 : totalSensors;
+  printBinaryFrame(gridId, nodeId, sensorValues, sendCount, vref, adcMax);
 }
 
-void serialTask(void* pvParameters) {
-  (void)pvParameters;
-  for (;;) {
-    // wait until sensorTask signals new data
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-    if (totalSensors == 0) continue;
-
-    // snapshot values quickly while holding the mutex
-    int* snapshot = (int*)malloc(sizeof(int) * totalSensors);
-    if (!snapshot) {
-      Serial.println("serialTask: snapshot malloc failed");
-      continue;
-    }
-
-    if (xSemaphoreTake(readingsMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-      for (uint8_t i = 0; i < totalSensors; ++i) snapshot[i] = sensorValues[i];
-      xSemaphoreGive(readingsMutex);
-    } else {
-      free(snapshot);
-      continue;
-    }
-
-    unsigned long t = millis();
-    // print CSV lines: timestamp_ms,id,row,col,raw_adc
-    for (uint8_t i = 0; i < totalSensors; ++i) {
-      int r = sensorMatrix->rowOf(i);
-      int c = sensorMatrix->colOf(i);
-      Serial.printf("%lu,%u,%d,%d,%d\n", t, (unsigned int)i, r, c, snapshot[i]);
-    }
-    Serial.flush();
-    free(snapshot);
-  }
-}
+// Print mapping once at startup as JSON so the host can map sensor ids to labels.
+// Example output:
+// {"mapping":[{"id":0,"label":"A1","row":0,"col":0}, {"id":1,"label":"A2","row":0,"col":1}, ...]}
+/* Mapping JSON printing moved to src/Mapper.cpp.
+   Use printMappingJson(sensorMatrix) declared in include/Mapper.h */
 
 void setup() {
   Serial.begin(115200);
   delay(100);
-  Serial.println("FSR HC4067 scanner (clean main) starting...");
+  Serial.println("FSR HC4067 scanner starting...");
 
   analogReadResolution(12);
   analogSetPinAttenuation(ADC_PIN, ADC_11db);
@@ -103,45 +73,35 @@ void setup() {
 
   sensorMatrix = new SensorMatrix(rows, NUM_ROWS, MAX_MUX_CHANNELS);
   sensorMatrix->printLayout();
+  // print mapping as JSON once at startup so the host can map channel ids to labels
+  printMappingJson(sensorMatrix);
 
   totalSensors = sensorMatrix->totalSensors();
   if (totalSensors == 0) {
     Serial.println("No sensors defined. Halting.");
-    while (1) vTaskDelay(pdMS_TO_TICKS(1000));
+    while (true) delay(1000);
   }
 
   // allocate values buffer
   sensorValues = (int*)malloc(sizeof(int) * totalSensors);
   if (!sensorValues) {
     Serial.println("Failed to allocate sensorValues buffer. Halting.");
-    while (1) vTaskDelay(pdMS_TO_TICKS(1000));
+    while (true) delay(1000);
   }
   for (uint8_t i = 0; i < totalSensors; ++i) sensorValues[i] = 0;
 
-  // create mutex
-  readingsMutex = xSemaphoreCreateMutex();
-  if (readingsMutex == NULL) {
-    Serial.println("Failed to create mutex. Halting.");
-    while (1) vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-
-  // create tasks
-  BaseType_t ok;
-  ok = xTaskCreatePinnedToCore(sensorTask, "SensorTask", 4096, NULL, 1, NULL, 1);
-  if (ok != pdPASS) {
-    Serial.println("Failed to create SensorTask. Halting.");
-    while (1) vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-
-  ok = xTaskCreatePinnedToCore(serialTask, "SerialTask", 4096, NULL, 1, &serialTaskHandle, 0);
-  if (ok != pdPASS) {
-    Serial.println("Failed to create SerialTask. Halting.");
-    while (1) vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-
+  lastScanMs = millis();
   Serial.println("Setup complete. Scanning started.");
 }
 
 void loop() {
-  vTaskDelay(pdMS_TO_TICKS(1000));
+  unsigned long now = millis();
+  // handle periodic scans without FreeRTOS
+  if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
+    performScanAndPrint();
+    lastScanMs = now;
+  }
+
+  // yield to background tasks and avoid busy loop
+  delay(1);
 }
