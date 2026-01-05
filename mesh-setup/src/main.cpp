@@ -1,8 +1,9 @@
-#include <Arduino.h>
+D#include <Arduino.h>
 #include "MuxScanner.h"
 #include "SensorMatrix.h"
 #include "Mapper.h"
 #include "BinaryOutput.h"
+#include "MotorController.h"
 #include <stdlib.h>
 
 const int rows[] = {4, 3, 3}; // change this to modify sensor layout
@@ -16,11 +17,18 @@ const uint8_t MUX_S3 = 27;
 const int     MUX_EN = -1; // set to pin number if EN (active LOW) is connected, otherwise -1
 const uint8_t ADC_PIN = 34;
 
+// Motor output (change pin/channel to match your hardware)
+const uint8_t MOTOR_PIN = 25;      // gate pin connected to MOSFET gate
+const uint8_t MOTOR_CHANNEL = 0;   // LEDC channel (ESP32)
+
 const uint8_t SAMPLES = 8;          // ADC samples per channel (averaging)
 const int SCAN_INTERVAL_MS = 200;   // time between full scans
 
 MuxScanner* muxScanner = nullptr;
 SensorMatrix* sensorMatrix = nullptr;
+
+// single motor controller instance (controls MOSFET gate)
+MotorController motor(MOTOR_PIN, MOTOR_CHANNEL);
 
 int* sensorValues = nullptr;
 uint8_t totalSensors = 0;
@@ -90,6 +98,10 @@ void setup() {
   }
   for (uint8_t i = 0; i < totalSensors; ++i) sensorValues[i] = 0;
 
+  // initialize motor controller
+  motor.begin();
+  motor.off(); // ensure motors are off at startup
+
   lastScanMs = millis();
   Serial.println("Setup complete. Scanning started.");
 }
@@ -101,6 +113,30 @@ void loop() {
     performScanAndPrint();
     lastScanMs = now;
   }
+
+  // check serial for simple motor control commands:
+  // "MOTOR ON", "MOTOR OFF", "MOTOR STATE"
+  if (Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd.equalsIgnoreCase("MOTOR ON") || cmd.equalsIgnoreCase("MOTOR_ON")) {
+      motor.on();
+      Serial.println("MOTOR: ON");
+    } else if (cmd.equalsIgnoreCase("MOTOR OFF") || cmd.equalsIgnoreCase("MOTOR_OFF")) {
+      motor.off();
+      Serial.println("MOTOR: OFF");
+    } else if (cmd.equalsIgnoreCase("MOTOR STATE") || cmd.equalsIgnoreCase("MOTOR_STATE")) {
+      Serial.print("MOTOR STATE: ");
+      Serial.println(motor.isOn() ? "ON" : "OFF");
+    } else {
+      // unknown command — echo back for debugging
+      Serial.print("Unknown command: ");
+      Serial.println(cmd);
+    }
+  }
+
+  // update motor (no-op for on/off version, kept for future compatibility)
+  motor.update();
 
   // yield to background tasks and avoid busy loop
   delay(1);
