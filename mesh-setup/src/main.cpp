@@ -18,11 +18,11 @@ const int     MUX_EN = -1; // set to pin number if EN (active LOW) is connected,
 const uint8_t ADC_PIN = 34;
 
 // Motor output (change pin/channel to match your hardware)
-const uint8_t MOTOR_PIN = 25;      // gate pin connected to MOSFET gate
-const uint8_t MOTOR_CHANNEL = 0;   // LEDC channel (ESP32)
+const uint8_t MOTOR_PIN = 25; 
+const uint8_t MOTOR_CHANNEL = 0;
 
-const uint8_t SAMPLES = 8;          // ADC samples per channel (averaging)
-const int SCAN_INTERVAL_MS = 200;   // time between full scans
+const uint8_t SAMPLES = 8;
+const int SCAN_INTERVAL_MS = 200;
 
 MuxScanner* muxScanner = nullptr;
 SensorMatrix* sensorMatrix = nullptr;
@@ -108,7 +108,6 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
-  // handle periodic scans without FreeRTOS
   if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
     performScanAndPrint();
     lastScanMs = now;
