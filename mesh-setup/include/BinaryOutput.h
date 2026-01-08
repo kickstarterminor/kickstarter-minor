@@ -30,10 +30,6 @@
 
   Total frame size: 62 bytes.
 
-  Example usage (from src/main.cpp):
-    // after filling int sensorValues[] with raw ADC readings:
-    printBinaryFrame("A1", "N03", sensorValues, totalSensors, 3.3f, 4095u);
-
   Notes / decoder hints:
    - All floats are written in native IEEE-754 32-bit little-endian (ESP32 is little-endian).
    - Receiver should read the magic (2 bytes), then read the next 58 bytes (version..floats),
@@ -121,4 +117,4 @@ static inline void printBinaryFrame(const char* gridId, const char* nodeId,
   Serial.flush();
 }
 
-#endif // BINARYOUTPUT_H
+#endif

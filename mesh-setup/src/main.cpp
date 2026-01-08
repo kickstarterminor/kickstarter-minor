@@ -4,6 +4,7 @@
 #include "Mapper.h"
 #include "BinaryOutput.h"
 #include "MotorController.h"
+#include "TimeManager.h"
 #include <stdlib.h>
 
 const int rows[] = {4, 3, 3}; // change this to modify sensor layout
@@ -18,7 +19,7 @@ const int     MUX_EN = -1; // set to pin number if EN (active LOW) is connected,
 const uint8_t ADC_PIN = 34;
 
 // Motor output (change pin/channel to match your hardware)
-const uint8_t MOTOR_PIN = 25; 
+const uint8_t MOTOR_PIN = 25;
 const uint8_t MOTOR_CHANNEL = 0;
 
 const uint8_t SAMPLES = 8;
@@ -61,12 +62,6 @@ void performScanAndPrint() {
   printBinaryFrame(gridId, nodeId, sensorValues, sendCount, vref, adcMax);
 }
 
-// Print mapping once at startup as JSON so the host can map sensor ids to labels.
-// Example output:
-// {"mapping":[{"id":0,"label":"A1","row":0,"col":0}, {"id":1,"label":"A2","row":0,"col":1}, ...]}
-/* Mapping JSON printing moved to src/Mapper.cpp.
-   Use printMappingJson(sensorMatrix) declared in include/Mapper.h */
-
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -102,6 +97,9 @@ void setup() {
   motor.begin();
   motor.off(); // ensure motors are off at startup
 
+  // initialize time manager (handles WiFi/NTP, schedule and stop button)
+  TimeManager::begin(&motor);
+
   lastScanMs = millis();
   Serial.println("Setup complete. Scanning started.");
 }
@@ -133,6 +131,9 @@ void loop() {
       Serial.println(cmd);
     }
   }
+
+  // let TimeManager handle scheduled starts and the physical stop button
+  TimeManager::loop();
 
   // update motor (no-op for on/off version, kept for future compatibility)
   motor.update();

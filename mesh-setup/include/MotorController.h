@@ -90,4 +90,4 @@ inline bool MotorController::isOn() const {
   return _state;
 }
 
-#endif // MOTORCONTROLLER_H
+#endif
