@@ -5,19 +5,19 @@
 #include "BinaryOutput.h"
 #include <stdlib.h>
 
-const int rows[] = {4, 3, 3}; // change this to modify sensor layout
+const int rows[] = {2, 1}; // change this to modify sensor layout
 const size_t NUM_ROWS = sizeof(rows) / sizeof(rows[0]);
 const uint8_t MAX_MUX_CHANNELS = 16;
 
-const uint8_t MUX_S0 = 12;
-const uint8_t MUX_S1 = 13;
-const uint8_t MUX_S2 = 14;
-const uint8_t MUX_S3 = 27;
-const int     MUX_EN = -1; // set to pin number if EN (active LOW) is connected, otherwise -1
+const uint8_t MUX_S0 = 14;
+const uint8_t MUX_S1 = 27;
+const uint8_t MUX_S2 = 26;
+const uint8_t MUX_S3 = 25;
+const int     MUX_EN = 15; // HC4067 EN (active LOW). Wire MUX EN to this GPIO (change if needed)
 const uint8_t ADC_PIN = 34;
 
 const uint8_t SAMPLES = 8;          // ADC samples per channel (averaging)
-const int SCAN_INTERVAL_MS = 200;   // time between full scans
+const int SCAN_INTERVAL_MS = 5000;  // time between full scans (ms) — 5000ms = 5s
 
 MuxScanner* muxScanner = nullptr;
 SensorMatrix* sensorMatrix = nullptr;
@@ -38,17 +38,42 @@ void performScanAndPrint() {
     delay(2);
   }
 
-  // Send compact binary frame (no timestamp by default).
-  // Frame layout and decoding notes are documented in include/BinaryOutput.h.
-  // We use grid_id "A1" and node_id "N03" (see id_block in the header).
+  // Human-readable output for debugging / terminal monitoring.
+  const float vref = 3.3f;
+  const float adcMaxF = 4095.0f;
+
+  Serial.println("---- Scan ----");
+  for (uint8_t id = 0; id < totalSensors; ++id) {
+    int raw = sensorValues[id];
+    int row = sensorMatrix->rowOf(id);
+    int col = sensorMatrix->colOf(id);
+
+    // Build a simple label: A1, B2, ... falling back to R#C# if row >= 26.
+    String label;
+    if (row >= 0 && row < 26) {
+      label += char('A' + row);
+      label += String(col + 1);
+    } else if (row >= 0) {
+      label = "R" + String(row) + "C" + String(col + 1);
+    } else {
+      label = "ID" + String(id);
+    }
+
+    float voltage = ((float)raw / adcMaxF) * vref;
+
+    Serial.print(label);
+    Serial.print(" id="); Serial.print(id);
+    Serial.print(" row="); Serial.print(row);
+    Serial.print(" col="); Serial.print(col);
+    Serial.print(" raw="); Serial.print(raw);
+    Serial.print(" V="); Serial.println(voltage, 3);
+  }
+  Serial.println("--------------");
+
+  // Also keep the compact binary frame for automated hosts that expect it.
   const char* gridId = "A1";
   const char* nodeId = "N03";
-  const float vref = 3.3f;
   const uint32_t adcMax = 4095u;
-
-  // Only send up to 12 channels (frame defines 12 float slots). If fewer sensors
-  // exist, the remaining floats are padded with 0.0. If more exist, we send the
-  // first 12 values.
   uint8_t sendCount = (totalSensors > 12) ? 12 : totalSensors;
   printBinaryFrame(gridId, nodeId, sensorValues, sendCount, vref, adcMax);
 }
@@ -67,13 +92,11 @@ void setup() {
   analogReadResolution(12);
   analogSetPinAttenuation(ADC_PIN, ADC_11db);
 
-  // create objects after Serial is available (SensorMatrix may print errors)
   muxScanner = new MuxScanner(MUX_S0, MUX_S1, MUX_S2, MUX_S3, MUX_EN, ADC_PIN, SAMPLES);
   muxScanner->begin();
 
   sensorMatrix = new SensorMatrix(rows, NUM_ROWS, MAX_MUX_CHANNELS);
   sensorMatrix->printLayout();
-  // print mapping as JSON once at startup so the host can map channel ids to labels
   printMappingJson(sensorMatrix);
 
   totalSensors = sensorMatrix->totalSensors();
@@ -82,7 +105,6 @@ void setup() {
     while (true) delay(1000);
   }
 
-  // allocate values buffer
   sensorValues = (int*)malloc(sizeof(int) * totalSensors);
   if (!sensorValues) {
     Serial.println("Failed to allocate sensorValues buffer. Halting.");
@@ -93,6 +115,7 @@ void setup() {
   lastScanMs = millis();
   Serial.println("Setup complete. Scanning started.");
 }
+
 
 void loop() {
   unsigned long now = millis();

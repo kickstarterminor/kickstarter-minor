@@ -49,28 +49,52 @@ void MuxScanner::setChannel(uint8_t ch) {
 int MuxScanner::readChannel(uint8_t ch) {
   ch &= 0x0F;
   writeSelectPins(ch);
+  // If EN pin is provided, enable the mux just before reading. This keeps
+  // the mux disabled between reads which helps isolate channels.
+  if (_enPin >= 0) {
+    digitalWrite(_enPin, LOW); // EN is active LOW
+    // short delay to allow EN to take effect
+    delayMicroseconds(10);
+  }
 
-  if (_enPin >= 0) digitalWrite(_enPin, LOW);
-  delayMicroseconds(50); // allow MUX output to settle
+  // Allow MUX output to settle. For high-impedance sensors (FSRs) the ADC's
+  // sample-and-hold capacitor may retain charge and cause 'ghost' readings on
+  // subsequent channels. Increase settling and perform multiple throwaway
+  // reads to give the input time to discharge / settle.
+  const int settleMs = 5;
+  delay(settleMs);
+  // Do two throwaway reads separated by a short pause
+  (void)analogRead((int)_adcPin);
+  delayMicroseconds(100);
+  (void)analogRead((int)_adcPin);
+  delayMicroseconds(100);
 
   uint32_t sum = 0;
   for (uint8_t i = 0; i < _samples; ++i) {
     sum += analogRead((int)_adcPin);
-    delayMicroseconds(20);
+    delayMicroseconds(50);
   }
 
-  if (_enPin >= 0) digitalWrite(_enPin, HIGH);
+  if (_enPin >= 0) digitalWrite(_enPin, HIGH); // disable mux while idle
   return (int)(sum / _samples);
 }
 
 int MuxScanner::readCurrentChannel() {
-  if (_enPin >= 0) digitalWrite(_enPin, LOW);
-  delayMicroseconds(50);
+  if (_enPin >= 0) {
+    digitalWrite(_enPin, LOW);
+    delayMicroseconds(10);
+  }
+  const int settleMs = 5;
+  delay(settleMs);
+  (void)analogRead((int)_adcPin);
+  delayMicroseconds(100);
+  (void)analogRead((int)_adcPin);
+  delayMicroseconds(100);
 
   uint32_t sum = 0;
   for (uint8_t i = 0; i < _samples; ++i) {
     sum += analogRead((int)_adcPin);
-    delayMicroseconds(20);
+    delayMicroseconds(50);
   }
 
   if (_enPin >= 0) digitalWrite(_enPin, HIGH);
