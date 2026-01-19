@@ -38,6 +38,20 @@ void performScanAndPrint() {
     delay(2);
   }
 
+  // Build a compact CSV-style string: first the matrix layout (e.g. "210" or "344"),
+  // then comma-separated raw values: <matrix>,val0,val1,...
+  String matrixStr;
+  for (size_t r = 0; r < sensorMatrix->numRows(); ++r) {
+    matrixStr += String(sensorMatrix->rowCount(r));
+  }
+  String csv;
+  csv += matrixStr;
+  for (uint8_t id = 0; id < totalSensors; ++id) {
+    csv += ",";
+    csv += String(sensorValues[id]);
+  }
+  Serial.println(csv);
+
   // Human-readable output for debugging / terminal monitoring.
   const float vref = 3.3f;
   const float adcMaxF = 4095.0f;
