@@ -7,7 +7,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen w-full bg-gray-100">
+    <div className="flex h-screen w-full bg-blue-500">
       {/* Sidebar */}
       <aside className="w-64 bg-purple-200 border-r p-4 flex flex-col shrink-0">
         <div className="h-16 bg-purple-200 flex items-center justify-center mb-8 pt-4">

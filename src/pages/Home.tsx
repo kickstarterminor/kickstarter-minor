@@ -1,10 +1,9 @@
-import { useState } from 'react'
-import reactLogo from '../assets/react.svg'
-import viteLogo from '../../public/vite.svg'
-import './Home.css'
+import { useState } from "react";
+import reactLogo from "../assets/react.svg";
+import viteLogo from "../../public/vite.svg";
 
 function Home() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <>
@@ -23,7 +22,7 @@ function Home() {
         </button>
         <button className="text-white rounded bg-blue-500 px-4 py-2 ml-4">
           Reset
-          </button>
+        </button>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
@@ -32,7 +31,7 @@ function Home() {
         Click on the Vite and React logos to learn more
       </p>
     </>
-  )
+  );
 }
 
-export default Home
+export default Home;
