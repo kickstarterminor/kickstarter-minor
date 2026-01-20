@@ -4,6 +4,8 @@
 #include "Mapper.h"
 #include "BinaryOutput.h"
 #include <stdlib.h>
+#include <LiquidCrystal_I2C.h>
+#include "AlarmUI.h"
 
 const int rows[] = {2, 1}; // change this to modify sensor layout
 const size_t NUM_ROWS = sizeof(rows) / sizeof(rows[0]);
@@ -18,6 +20,21 @@ const uint8_t ADC_PIN = 34;
 
 const uint8_t SAMPLES = 8;          // ADC samples per channel (averaging)
 const int SCAN_INTERVAL_MS = 5000;  // time between full scans (ms) — 5000ms = 5s
+
+// Using an I2C LCD backpack (4 wires: VCC, GND, SDA, SCL).
+// Common I2C addresses are 0x27 or 0x3F depending on the adapter.
+const uint8_t LCD_I2C_ADDR = 0x27;
+const uint8_t LCD_COLS = 16;
+const uint8_t LCD_ROWS = 2;
+
+// Buttons for alarm UI - active LOW (use INPUT_PULLUP)
+const uint8_t BTN_CORRECT = 32; // confirm
+const uint8_t BTN_WRONG   = 33; // cancel/back
+const uint8_t BTN_UP      = 4;
+const uint8_t BTN_DOWN    = 16;
+
+LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
+AlarmUI alarmUi(lcd, BTN_CORRECT, BTN_WRONG, BTN_UP, BTN_DOWN);
 
 MuxScanner* muxScanner = nullptr;
 SensorMatrix* sensorMatrix = nullptr;
@@ -92,12 +109,6 @@ void performScanAndPrint() {
   printBinaryFrame(gridId, nodeId, sensorValues, sendCount, vref, adcMax);
 }
 
-// Print mapping once at startup as JSON so the host can map sensor ids to labels.
-// Example output:
-// {"mapping":[{"id":0,"label":"A1","row":0,"col":0}, {"id":1,"label":"A2","row":0,"col":1}, ...]}
-/* Mapping JSON printing moved to src/Mapper.cpp.
-   Use printMappingJson(sensorMatrix) declared in include/Mapper.h */
-
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -128,11 +139,15 @@ void setup() {
 
   lastScanMs = millis();
   Serial.println("Setup complete. Scanning started.");
+  // initialize LCD and alarm UI (non-blocking)
+  alarmUi.begin();
 }
 
 
 void loop() {
   unsigned long now = millis();
+  // run alarm UI so the display updates and buttons are processed
+  alarmUi.loop();
   // handle periodic scans without FreeRTOS
   if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
     performScanAndPrint();
