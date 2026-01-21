@@ -1,5 +1,6 @@
 import React from "react";
 import leagueLogo from "../assets/lol.svg";
+import { Link } from "react-router-dom";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -9,47 +10,40 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen w-full bg-blue-500">
       {/* Sidebar */}
-      <aside className="w-64 bg-purple-200 border-r p-4 flex flex-col shrink-0">
+      <aside
+        className="w-64 bg-purple-200 border-r p-4 flex flex-col shrink-0"
+        role="complementary"
+      >
+        {/* Logo */}
         <div className="h-16 bg-purple-200 flex items-center justify-center mb-8 pt-4">
-          <img src={leagueLogo} alt="Logo" className="h-16" />
+          <img src={leagueLogo} alt="League of Legends Logo" className="h-16" />
         </div>
+        {/* Navigation */}
         <nav className="flex flex-col flex-1 space-y-2 bg-purple-100 border-purple-400 border-2 p-4 rounded-lg pb-12 m-2">
           <h2 className="text-black text-left p-2.5 font-bold">Menu</h2>
-          <a
-            href="/home"
-            className="hover:bg-purple-200 p-2 rounded-lg text-purple-900 font-semibold transition flex items-center space-x-2"
-          >
-            <span className="material-symbols-outlined text-black">home</span>
-            <span>Home</span>
-          </a>
-          <a
-            href="/dashboard"
-            className="hover:bg-purple-200 p-2 rounded-lg text-purple-900 font-semibold transition flex items-center space-x-2"
-          >
-            <span className="material-symbols-outlined text-black">
-              dashboard
-            </span>
-            <span>Dashboard</span>
-          </a>
-          <hr className="border-purple-400 border-t" />
-          <ul>
-            <li className="mt-auto">
-              <a
-                href="/settings"
+          <ul role="list" className="flex flex-col space-y-1">
+            <li>
+              <Link
+                to="/dashboard"
+                className="hover:bg-purple-200 p-2 rounded-lg text-purple-900 font-semibold transition flex items-center space-x-2"
+              >
+                <span className="material-symbols-outlined text-black">
+                  dashboard
+                </span>
+                <span>Dashboard</span>
+              </Link>
+            </li>
+            <hr className="border-purple-400 border-t mt-2 mb-2" />
+            <li className="">
+              <Link
+                to="/settings"
                 className="hover:bg-purple-200 p-2 rounded-lg text-purple-900 font-semibold transition flex items-center space-x-2"
               >
                 <span className="material-symbols-outlined text-black">
                   settings
                 </span>
                 <span>Settings</span>
-              </a>
-            </li>
-          </ul>
-          <ul>
-            <li>
-              <a>
-                <span></span>
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>
@@ -63,7 +57,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-6 pt-3 overflow-y-auto">{children}</main>
       </div>
     </div>
   );
