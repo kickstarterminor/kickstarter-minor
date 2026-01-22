@@ -7,8 +7,11 @@
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include "AlarmUI.h"
+#include <WiFi.h>
+#include "credentials.h"
+#include <time.h>
 
-const int rows[] = {2, 1}; // change this to modify sensor layout
+const int rows[] = {2, 3, 3}; // change this to modify sensor layout
 const size_t NUM_ROWS = sizeof(rows) / sizeof(rows[0]);
 const uint8_t MAX_MUX_CHANNELS = 16;
 
@@ -146,6 +149,30 @@ void setup() {
   // try 400kHz I2C which helps some adapters
   Wire.setClock(400000);
   alarmUi.begin();
+
+  // Connect to Wi-Fi (credentials in credentials.h)
+  Serial.print("Connecting to Wi-Fi '"); Serial.print(WIFI_SSID); Serial.println("'...");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  unsigned long wifiStart = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 15000) {
+    delay(250);
+    Serial.print('.');
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("\nWi-Fi connected, IP="); Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\nWi-Fi failed to connect (check credentials). NTP will retry if network becomes available.");
+  }
+
+  // Configure timezone for Europe/Amsterdam and start NTP (non-blocking)
+  // The TZ string below handles CET/CEST DST rules.
+  const char* tz = "CET-1CEST,M3.5.0/02:00:00,M10.5.0/03:00:00";
+  configTzTime(tz, "pool.ntp.org", "time.nist.gov");
+  Serial.println("Waiting for NTP time... (will update LCD when available)");
+
+  // Make sure alarm UI starts in alarm view (not realtime)
+  alarmUi.showRealtime(false);
 }
 
 
@@ -153,6 +180,22 @@ void loop() {
   unsigned long now = millis();
   // run alarm UI so the display updates and buttons are processed
   alarmUi.loop();
+
+  // Update clock from system time every second
+  static unsigned long lastClockMs = 0;
+  if (now - lastClockMs >= 1000) {
+    lastClockMs = now;
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      char timestr[9]; // HH:MM:SS\0
+      snprintf(timestr, sizeof(timestr), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+      alarmUi.setClock(timestr);
+    } else {
+      // clear clock until NTP sync
+      alarmUi.setClock(nullptr);
+    }
+  }
+
   // handle periodic scans without FreeRTOS
   if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
     //performScanAndPrint();

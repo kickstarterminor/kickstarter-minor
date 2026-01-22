@@ -20,6 +20,13 @@ public:
   uint8_t alarmMinute() const;
   bool isAlarmEnabled() const;
 
+  // set a pre-formatted clock string (HH:MM:SS). Passing nullptr or empty
+  // string clears the clock display.
+  void setClock(const char* clockStr);
+
+  // show realtime instead of alarm on the main display
+  void showRealtime(bool en);
+
 private:
   LiquidCrystal_I2C* _lcd;
   uint8_t _btn[4];
@@ -38,13 +45,23 @@ private:
   bool _lastReading[4];
   bool _lastState[4];
   bool _pressedEvent[4];
+  // press timing and long-press state
+  unsigned long _pressStart[4];
+  bool _longPressEvent[4];
 
   // blink for the current field
   unsigned long _lastBlink;
   bool _blinkOn;
 
+  // simple ASCII clock buffer ("HH:MM:SS" + null)
+  char _clock[9];
+  // pending clock stored while editing so realtime display doesn't update
+  char _pendingClock[9];
+  bool _pendingClockSet;
+
   void readButtons();
   bool consumePressed(uint8_t idx);
+  bool consumeLongPressed(uint8_t idx);
   void updateDisplay();
 };
 
