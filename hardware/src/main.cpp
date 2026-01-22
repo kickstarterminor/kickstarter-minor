@@ -5,6 +5,7 @@
 #include "BinaryOutput.h"
 #include <stdlib.h>
 #include <LiquidCrystal_I2C.h>
+#include <Wire.h>
 #include "AlarmUI.h"
 
 const int rows[] = {2, 1}; // change this to modify sensor layout
@@ -139,7 +140,11 @@ void setup() {
 
   lastScanMs = millis();
   Serial.println("Setup complete. Scanning started.");
-  // initialize LCD and alarm UI (non-blocking)
+  // initialize I2C and LCD/alarm UI (non-blocking)
+  Serial.println("Initializing I2C (Wire.begin)...");
+  Wire.begin();
+  // try 400kHz I2C which helps some adapters
+  Wire.setClock(400000);
   alarmUi.begin();
 }
 
@@ -150,7 +155,7 @@ void loop() {
   alarmUi.loop();
   // handle periodic scans without FreeRTOS
   if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
-    performScanAndPrint();
+    //performScanAndPrint();
     lastScanMs = now;
   }
 

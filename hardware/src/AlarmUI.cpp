@@ -1,4 +1,5 @@
 #include "AlarmUI.h"
+#include <Wire.h>
 
 // debounce and long-press constants
 static const unsigned long DEBOUNCE_MS = 30;
@@ -23,7 +24,31 @@ void AlarmUI::begin() {
   for (int i = 0; i < 4; ++i) {
     pinMode(_btn[i], INPUT_PULLUP);
   }
+  Serial.print("AlarmUI begin pins: ");
+  Serial.print("confirm="); Serial.print(_btn[0]);
+  Serial.print(" cancel="); Serial.print(_btn[1]);
+  Serial.print(" up="); Serial.print(_btn[2]);
+  Serial.print(" down="); Serial.println(_btn[3]);
+  // Basic I2C bus probe to help diagnose missing characters on the LCD.
+  Serial.println("AlarmUI: scanning I2C bus for devices...");
+  uint8_t devCount = 0;
+  for (uint8_t addr = 1; addr < 127; ++addr) {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("I2C device found at 0x");
+      if (addr < 16) Serial.print('0');
+      Serial.println(addr, HEX);
+      ++devCount;
+    }
+  }
+  if (devCount == 0) Serial.println("No I2C devices found on bus.");
+  else {
+    Serial.print(devCount); Serial.println(" I2C devices found.");
+  }
   _lcd->init();
+  _lcd->backlight();
+  _lcd->clear();
+  _lcd->setBacklight(LOW);
   _lcd->backlight();
   updateDisplay();
 }
@@ -109,12 +134,17 @@ void AlarmUI::readButtons() {
     bool reading = digitalRead(_btn[i]);
     if (reading != _lastReading[i]) {
       _lastDebounce[i] = millis();
+      Serial.print("btn raw change i="); Serial.print(i);
+      Serial.print(" pin="); Serial.print(_btn[i]);
+      Serial.print(" reading="); Serial.println(reading ? 1 : 0);
     }
     if ((millis() - _lastDebounce[i]) > DEBOUNCE_MS) {
       if (reading != _lastState[i]) {
         _lastState[i] = reading;
         if (reading == LOW) {
           _pressedEvent[i] = true;
+          Serial.print("btn pressedEvent set i="); Serial.print(i);
+          Serial.print(" pin="); Serial.println(_btn[i]);
         }
       }
     }
@@ -126,6 +156,8 @@ bool AlarmUI::consumePressed(uint8_t idx) {
   if (idx >= 4) return false;
   if (_pressedEvent[idx]) {
     _pressedEvent[idx] = false;
+    Serial.print("btn consumed idx="); Serial.print(idx);
+    Serial.print(" pin="); Serial.println(_btn[idx]);
     return true;
   }
   return false;
@@ -141,6 +173,10 @@ static void two(uint8_t v, char* buf) {
 
 void AlarmUI::updateDisplay() {
   // display: line1 show Alarm HH:MM [ON/OFF], line2 show hints
+  Serial.print("updateDisplay: state="); Serial.print(_state);
+  Serial.print(" alarm=");
+  Serial.print(_alarmHour); Serial.print(":"); Serial.print(_alarmMinute);
+  Serial.print(" enabled="); Serial.println(_enabled ? "1" : "0");
   _lcd->clear();
   _lcd->setCursor(0, 0);
   _lcd->print("Alarm ");
@@ -181,4 +217,5 @@ void AlarmUI::updateDisplay() {
     }
   }
 }
+
 
