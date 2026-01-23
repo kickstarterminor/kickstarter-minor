@@ -12,7 +12,7 @@
 #include "ApiClient.h"
 #include <time.h>
 
-const int rows[] = {2, 3, 3}; // change this to modify sensor layout
+const int rows[] = {3, 4, 3}; // change this to modify sensor layout
 const size_t NUM_ROWS = sizeof(rows) / sizeof(rows[0]);
 const uint8_t MAX_MUX_CHANNELS = 16;
 
