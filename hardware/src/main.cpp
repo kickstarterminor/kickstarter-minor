@@ -9,6 +9,7 @@
 #include "AlarmUI.h"
 #include <WiFi.h>
 #include "credentials.h"
+#include "ApiClient.h"
 #include <time.h>
 
 const int rows[] = {2, 3, 3}; // change this to modify sensor layout
@@ -24,6 +25,7 @@ const uint8_t ADC_PIN = 34;
 
 const uint8_t SAMPLES = 8;          // ADC samples per channel (averaging)
 const int SCAN_INTERVAL_MS = 5000;  // time between full scans (ms) — 5000ms = 5s
+// CSV/API configuration lives in ApiClient (src/ApiClient.cpp). Call apiClientBegin() in setup
 
 // Using an I2C LCD backpack (4 wires: VCC, GND, SDA, SCL).
 // Common I2C addresses are 0x27 or 0x3F depending on the adapter.
@@ -72,6 +74,8 @@ void performScanAndPrint() {
     csv += String(sensorValues[id]);
   }
   Serial.println(csv);
+  // Send CSV payload to API endpoint
+  sendCsvToApi(csv);
 
   // Human-readable output for debugging / terminal monitoring.
   const float vref = 3.3f;
@@ -198,7 +202,7 @@ void loop() {
 
   // handle periodic scans without FreeRTOS
   if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
-    //performScanAndPrint();
+    performScanAndPrint();
     lastScanMs = now;
   }
 
