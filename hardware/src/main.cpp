@@ -12,20 +12,25 @@
 #include "ApiClient.h"
 #include <time.h>
 
+#define SDA_PIN 8
+#define SCL_PIN 9
+
+
 const int rows[] = {3, 4, 3}; // change this to modify sensor layout
 const size_t NUM_ROWS = sizeof(rows) / sizeof(rows[0]);
 const uint8_t MAX_MUX_CHANNELS = 16;
 
-const uint8_t MUX_S0 = 14;
-const uint8_t MUX_S1 = 27;
-const uint8_t MUX_S2 = 26;
-const uint8_t MUX_S3 = 25;
-const int     MUX_EN = 15; // HC4067 EN (active LOW). Wire MUX EN to this GPIO (change if needed)
-const uint8_t ADC_PIN = 34;
+const uint8_t MUX_S0 = 4;
+const uint8_t MUX_S1 = 5;
+const uint8_t MUX_S2 = 6;
+const uint8_t MUX_S3 = 7;
+const int     MUX_EN = -1; // HC4067 EN (active LOW). Wire MUX EN to this GPIO (change if needed)
+const uint8_t ADC_PIN = 1;
 
 const uint8_t SAMPLES = 8;          // ADC samples per channel (averaging)
 const int SCAN_INTERVAL_MS = 5000;  // time between full scans (ms) — 5000ms = 5s
 // CSV/API configuration lives in ApiClient (src/ApiClient.cpp). Call apiClientBegin() in setup
+
 
 // Using an I2C LCD backpack (4 wires: VCC, GND, SDA, SCL).
 // Common I2C addresses are 0x27 or 0x3F depending on the adapter.
@@ -34,10 +39,10 @@ const uint8_t LCD_COLS = 16;
 const uint8_t LCD_ROWS = 2;
 
 // Buttons for alarm UI - active LOW (use INPUT_PULLUP)
-const uint8_t BTN_CORRECT = 32; // confirm
-const uint8_t BTN_WRONG   = 33; // cancel/back
-const uint8_t BTN_UP      = 4;
-const uint8_t BTN_DOWN    = 16;
+const uint8_t BTN_CORRECT = 21; // confirm
+const uint8_t BTN_WRONG   = 2; // cancel/back
+const uint8_t BTN_UP      = 42;
+const uint8_t BTN_DOWN    = 41;
 
 LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 AlarmUI alarmUi(lcd, BTN_CORRECT, BTN_WRONG, BTN_UP, BTN_DOWN);
@@ -149,9 +154,9 @@ void setup() {
   Serial.println("Setup complete. Scanning started.");
   // initialize I2C and LCD/alarm UI (non-blocking)
   Serial.println("Initializing I2C (Wire.begin)...");
-  Wire.begin();
+  Wire.begin(SDA_PIN, SCL_PIN);
   // try 400kHz I2C which helps some adapters
-  Wire.setClock(400000);
+  //Wire.setClock(400000);
   alarmUi.begin();
 
   // Connect to Wi-Fi (credentials in credentials.h)
