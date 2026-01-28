@@ -13,8 +13,9 @@ AlarmUI::AlarmUI(LiquidCrystal_I2C& lcd, uint8_t btnConfirm, uint8_t btnCancel, 
   _btn[3] = btnDown;
   for (int i = 0; i < 4; ++i) {
     _lastDebounce[i] = 0;
-    _lastReading[i] = HIGH;
-    _lastState[i] = HIGH;
+    // Switch to pulldown: released = LOW, pressed = HIGH (connect button to 3V3)
+    _lastReading[i] = LOW;  // [web:5]
+    _lastState[i] = LOW;
     _pressedEvent[i] = false;
   }
   _clock[0] = '\0';
@@ -27,15 +28,16 @@ AlarmUI::AlarmUI(LiquidCrystal_I2C& lcd, uint8_t btnConfirm, uint8_t btnCancel, 
 }
 
 void AlarmUI::begin() {
+  // Switch to INPUT_PULLDOWN for all buttons (ESP32-S3 supports ~45kΩ internal pulldown) [web:5][web:11][web:20]
   for (int i = 0; i < 4; ++i) {
-    pinMode(_btn[i], INPUT_PULLUP);
+    pinMode(_btn[i], INPUT_PULLDOWN);  // [web:5]
   }
-  Serial.print("AlarmUI begin pins: ");
+  Serial.print("AlarmUI begin pins (PULLDOWN): ");
   Serial.print("confirm="); Serial.print(_btn[0]);
   Serial.print(" cancel="); Serial.print(_btn[1]);
   Serial.print(" up="); Serial.print(_btn[2]);
   Serial.print(" down="); Serial.println(_btn[3]);
-  // Basic I2C bus probe to help diagnose missing characters on the LCD.
+  // Rest unchanged...
   Serial.println("AlarmUI: scanning I2C bus for devices...");
   uint8_t devCount = 0;
   for (uint8_t addr = 1; addr < 127; ++addr) {
@@ -59,10 +61,13 @@ void AlarmUI::begin() {
   updateDisplay();
 }
 
+// readButtons() unchanged, as it reads raw digitalRead (works for both pullup/pulldown)
+// but now pressed == HIGH (vs LOW in pullup)
 void AlarmUI::loop() {
   readButtons();
 
-  // handle inputs (state machine)
+  // handle inputs (state machine) - unchanged, since consumePressed detects LOW->HIGH edge
+  // (now HIGH on press against pulldown, but logic is edge-based, not level-based)
   if (_state == 0) {
     if (consumePressed(0)) { // confirm
       _enabled = !_enabled;
@@ -137,4 +142,3 @@ void AlarmUI::loop() {
 uint8_t AlarmUI::alarmHour() const { return _alarmHour; }
 uint8_t AlarmUI::alarmMinute() const { return _alarmMinute; }
 bool AlarmUI::isAlarmEnabled() const { return _enabled; }
-

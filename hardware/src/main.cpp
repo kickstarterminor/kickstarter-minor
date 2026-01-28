@@ -39,10 +39,10 @@ const uint8_t LCD_COLS = 16;
 const uint8_t LCD_ROWS = 2;
 
 // Buttons for alarm UI - active LOW (use INPUT_PULLUP)
-const uint8_t BTN_CORRECT = 21; // confirm
-const uint8_t BTN_WRONG   = 2; // cancel/back
-const uint8_t BTN_UP      = 42;
-const uint8_t BTN_DOWN    = 41;
+const uint8_t BTN_CORRECT = 13;
+const uint8_t BTN_WRONG   = 10;
+const uint8_t BTN_UP      = 12;
+const uint8_t BTN_DOWN    = 11;
 
 LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 AlarmUI alarmUi(lcd, BTN_CORRECT, BTN_WRONG, BTN_UP, BTN_DOWN);
