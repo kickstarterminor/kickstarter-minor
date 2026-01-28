@@ -11,6 +11,11 @@
 #include "credentials.h"
 #include "ApiClient.h"
 #include <time.h>
+#include "motor_control.h"
+
+#define MOTOR_PIN 17
+
+
 
 #define SDA_PIN 8
 #define SCL_PIN 9
@@ -46,7 +51,7 @@ const uint8_t BTN_DOWN    = 11;
 
 LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 AlarmUI alarmUi(lcd, BTN_CORRECT, BTN_WRONG, BTN_UP, BTN_DOWN);
-
+MotorControl motor(MOTOR_PIN);
 MuxScanner* muxScanner = nullptr;
 SensorMatrix* sensorMatrix = nullptr;
 
@@ -189,6 +194,7 @@ void loop() {
   unsigned long now = millis();
   // run alarm UI so the display updates and buttons are processed
   alarmUi.loop();
+  motor.begin();
 
   // Update clock from system time every second
   static unsigned long lastClockMs = 0;
