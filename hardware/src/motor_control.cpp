@@ -25,9 +25,14 @@ void MotorControl::setPulse(bool enable, uint16_t onTime, uint16_t offTime) {
   }
 }
 
-void MotorControl::setOn(bool state) {
+void MotorControl::setOn() {
   pulseEnabled = false;
-  digitalWrite(pin, state);
+  digitalWrite(pin, 1);
+}
+
+void MotorControl::setOff() {
+  pulseEnabled = false;
+  digitalWrite(pin, 0);
 }
 
 void MotorControl::update() {

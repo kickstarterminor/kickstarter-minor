@@ -16,7 +16,8 @@ public:
   MotorControl(uint8_t motorPin);
   void begin();
   void setPulse(bool enable, uint16_t onTime = 200, uint16_t offTime = 800);
-  void setOn(bool state);
+  void setOn();
+  void setOff();
   void update();  // Call in loop()
 };
 

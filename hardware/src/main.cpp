@@ -163,6 +163,7 @@ void setup() {
   // try 400kHz I2C which helps some adapters
   //Wire.setClock(400000);
   alarmUi.begin();
+  motor.begin();
 
   // Connect to Wi-Fi (credentials in credentials.h)
   Serial.print("Connecting to Wi-Fi '"); Serial.print(WIFI_SSID); Serial.println("'...");
@@ -176,6 +177,7 @@ void setup() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("\nWi-Fi connected, IP="); Serial.println(WiFi.localIP());
   } else {
+    ESP.restart();
     Serial.println("\nWi-Fi failed to connect (check credentials). NTP will retry if network becomes available.");
   }
 
@@ -192,31 +194,64 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
-  // run alarm UI so the display updates and buttons are processed
+  
+  // Run UI and motor updates (non-blocking)
   alarmUi.loop();
-  motor.begin();
-
-  // Update clock from system time every second
+  motor.update();
+  
+  // Update clock from system time every second (single call)
   static unsigned long lastClockMs = 0;
   if (now - lastClockMs >= 1000) {
     lastClockMs = now;
+    
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
+      // Update display
       char timestr[9]; // HH:MM:SS\0
-      snprintf(timestr, sizeof(timestr), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+      snprintf(timestr, sizeof(timestr), "%02d:%02d:%02d", 
+               timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
       alarmUi.setClock(timestr);
+      
+      // Alarm trigger logic met anti-spam flag
+      static int8_t lastTriggeredHour = -1;
+      static int8_t lastTriggeredMinute = -1;
+      
+      // Check of we in een nieuwe minuut zitten sinds laatste trigger
+      bool canTrigger = (lastTriggeredHour != timeinfo.tm_hour || 
+                         lastTriggeredMinute != timeinfo.tm_min);
+      
+      // Reset flag als alarm disabled wordt
+      if (!alarmUi.isAlarmEnabled()) {
+        lastTriggeredHour = -1;
+        lastTriggeredMinute = -1;
+        motor.setOff();
+      }
+      
+      // Check alarm trigger (alleen bij :00 seconden en als nog niet getriggerd)
+      if (alarmUi.isAlarmEnabled() && timeinfo.tm_sec == 0 && canTrigger) {
+        if (timeinfo.tm_hour == alarmUi.alarmHour() && 
+            timeinfo.tm_min == alarmUi.alarmMinute()) {
+          Serial.println("ALARM TRIGGERED!");
+          motor.setPulse(true, 200, 800);
+          
+          // Markeer huidige minuut als getriggerd
+          lastTriggeredHour = timeinfo.tm_hour;
+          lastTriggeredMinute = timeinfo.tm_min;
+        }
+      }
     } else {
-      // clear clock until NTP sync
+      // Clear clock until NTP sync
       alarmUi.setClock(nullptr);
     }
   }
-
-  // handle periodic scans without FreeRTOS
-  if ((long)(now - lastScanMs) >= SCAN_INTERVAL_MS) {
+  
+  // Handle periodic scans
+  static unsigned long lastScanMs = 0;
+  if (now - lastScanMs >= SCAN_INTERVAL_MS) {
     performScanAndPrint();
     lastScanMs = now;
   }
-
-  // yield to background tasks and avoid busy loop
+  
+  // Yield to background tasks
   delay(1);
 }
