@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import smartLogo from "../assets/smartsleep.svg";
+import smartLogo from "../assets/smart.svg";
 import { Link } from "react-router-dom";
 
 interface DashboardLayoutProps {
@@ -43,7 +43,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         >
           {/* Logo */}
           <div className="h-16 flex items-center justify-center mb-8">
-            <img src={smartLogo} alt="SmartSleep Logo" className="h-16" />
+            <img src={smartLogo} alt="SmartSleep Logo" className="h-32 mt-8" />
           </div>
 
           {/* Navigation */}
@@ -60,7 +60,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             </Link>
 
             <Link
-              to="/dashboard"
+              to="/settings"
               onClick={() => setOpen(false)}
               className="hover:bg-blue-200 p-2 rounded-lg font-semibold flex items-center gap-2"
             >
@@ -83,7 +83,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Header */}
           <header className="hidden md:flex h-24 bg-blue-200 border-b border-l border-blue-400 rounded-bl-2xl items-center justify-center">
-            <h1 className="text-lg font-semibold">Dashboard Header</h1>
+            <h1 className="text-lg font-semibold">Dashboard</h1>
           </header>
 
           {/* Page content */}

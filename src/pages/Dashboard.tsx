@@ -5,15 +5,19 @@ import { useGetData } from "../hooks/fetch";
 
 const Dashboard: React.FC = () => {
   // make a get call to fetch data
-  const { timeSumData, loading, error } = useGetData(); //useGetData();
+  const { timeSumData, heatData } = useGetData(); //useGetData();
   console.log("data", timeSumData);
-  console.log("loading", loading);
-  console.log("error", error);
-
+  console.log("heatdata", heatData);
   const options: ApexOptions = {
     chart: { type: "line" },
     series: [{ data: timeSumData || [] }],
     xaxis: { type: "datetime" },
+  };
+
+  const optionsheat: ApexOptions = {
+    chart: { type: "heatmap" },
+    series: heatData || [],
+    xaxis: { type: "category" },
   };
 
   return (
@@ -27,6 +31,15 @@ const Dashboard: React.FC = () => {
               options={options}
               series={options.series}
               type="line"
+              height="100%"
+            />
+          </div>
+          {/* heatmap  */}
+          <div className="lg:col-span-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <ReactApexChart
+              options={optionsheat}
+              series={optionsheat.series}
+              type="heatmap"
               height="100%"
             />
           </div>
