@@ -1,55 +1,63 @@
-import React from "react";
-import type { ApexOptions } from "apexcharts";
+import React, {useMemo} from "react";
+import type {ApexOptions} from "apexcharts";
 import ReactApexChart from "react-apexcharts";
-import { useGetData } from "../hooks/fetch";
+import {useGetData} from "../hooks/fetch";
+import ChartCard from "../layouts/ChartCard.tsx";
 
 const ChartHeat: React.FC = () => {
-  const { jsonData } = useGetData();
+    const {jsonData} = useGetData();
 
-  try {
-    if (!jsonData) throw new Error("No data available");
-  } catch (error) {
-    console.error(error);
-    return null; // or some fallback UI
-  }
-  const latest = jsonData.reduce((latest, item) => {
-    return new Date(item.createdAt) > new Date(latest.createdAt)
-      ? item
-      : latest;
-  });
-  const rawvalue = latest.value;
-  const numbers = rawvalue.split(",").map(Number);
-  const format = numbers[0].toString().split("").map(Number);
-  const value = numbers.slice(1);
-  const matrix = [];
+    const latest = useMemo(() => {
+        if (!Array.isArray(jsonData) || jsonData.length === 0) return null;
 
-  let index = 0;
+        return jsonData.reduce((latestItem, item) =>
+            new Date(item.createdAt) > new Date(latestItem.createdAt) ? item : latestItem,
+        );
+    }, [jsonData]);
 
-  for (const rowLength of format) {
-    matrix.push(value.slice(index, index + rowLength));
-    index += rowLength;
-  }
-  const series = matrix.map((row, rowIndex) => ({
-    name: `Row ${rowIndex + 1}`,
-    data: row.map((value, colIndex) => ({
-      x: (colIndex + 1).toString(),
-      y: value,
-    })),
-  }));
+    const series = useMemo(() => {
+        if (!latest) return [];
 
-  const optionsheat: ApexOptions = {
-    chart: { type: "heatmap" },
-    series: series || [],
-    xaxis: { type: "category" },
-  };
-  return (
-    <ReactApexChart
-      options={optionsheat}
-      series={optionsheat.series}
-      type="heatmap"
-      height="100%"
-    />
-  );
+        const numbers = latest.value.split(",").map(Number);
+        const format = numbers[0].toString().split("").map(Number);
+        const value = numbers.slice(1);
+
+        const matrix: number[][] = [];
+        let index = 0;
+
+        for (const rowLength of format) {
+            matrix.push(value.slice(index, index + rowLength));
+            index += rowLength;
+        }
+
+        return matrix.map((row, rowIndex) => ({
+            name: `Row ${rowIndex + 1}`,
+            data: row.map((cellValue, colIndex) => ({
+                x: (colIndex + 1).toString(),
+                y: cellValue,
+            })),
+        }));
+    }, [latest]);
+
+    const optionsheat: ApexOptions = useMemo(
+        () => ({
+            chart: {type: "heatmap"},
+            series,
+            xaxis: {type: "category"},
+        }),
+        [series],
+    );
+
+    return (
+        <ChartCard>
+            <ReactApexChart
+                options={optionsheat}
+                series={optionsheat.series}
+                type="heatmap"
+                height="100%"
+            />
+        </ChartCard>
+    );
 };
 
 export default ChartHeat;

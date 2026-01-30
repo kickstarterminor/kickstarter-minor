@@ -1,57 +1,59 @@
-import React from "react";
-import type { ApexOptions } from "apexcharts";
+import React, {useMemo} from "react";
+import type {ApexOptions} from "apexcharts";
 import ReactApexChart from "react-apexcharts";
-import { useGetData } from "../hooks/fetch";
+import {useGetData} from "../hooks/fetch";
+import ChartCard from "../layouts/ChartCard.tsx";
 
 const ChartLine: React.FC = () => {
-  const { jsonData } = useGetData(); //useGetData();
-  const twelveHoursAgo = Date.now() - 72 * 60 * 60 * 1000;
+    const {jsonData} = useGetData(); //useGetData();
 
-  try {
-    if (!jsonData) throw new Error("No data available");
-  } catch (error) {
-    console.error(error);
-    return null; // or some fallback UI
-  }
+    // Keep the "time window" stable for each render cycle; recompute when the hook data changes.
+    const seventyTwoHoursAgo = useMemo(
+        () => Date.now() - 72 * 60 * 60 * 1000,
+        [jsonData],
+    );
 
-  const formattedData: number[][] = jsonData
-    .filter(
-      (item) =>
-        item.deviceId === "Device002" &&
-        new Date(item.createdAt).getTime() > twelveHoursAgo,
-    )
-    .map((item) => {
-      // condition to skip if by selecting device
+    const formattedData: number[][] = useMemo(() => {
+        if (!Array.isArray(jsonData)) return [];
 
-      // Calculate the sum (skipping first value)
-      const sum = item.value
-        .split(",")
-        .slice(1)
-        .map(Number)
-        .reduce((acc, curr) => acc + curr, 0);
+        return jsonData
+            .filter(
+                (item) =>
+                    item.deviceId === "Device002" &&
+                    new Date(item.createdAt).getTime() > seventyTwoHoursAgo,
+            )
+            .map((item) => {
+                // Calculate the sum (skipping first value)
+                const sum = item.value
+                    .split(",")
+                    .slice(1)
+                    .map(Number)
+                    .reduce((acc, curr) => acc + curr, 0);
 
-      // Convert createdAt to a millisecond timestamp
-      const timestamp = new Date(item.createdAt).getTime();
+                const timestamp = new Date(item.createdAt).getTime();
+                return [timestamp, sum];
+            });
+    }, [jsonData, seventyTwoHoursAgo]);
 
-      return [timestamp, sum];
-    });
+    const options: ApexOptions = useMemo(
+        () => ({
+            chart: {type: "line"},
+            series: [{data: formattedData??[]}],
+            xaxis: {type: "datetime"},
+        }),
+        [formattedData],
+    );
 
-  console.log("data", formattedData);
-
-  const options: ApexOptions = {
-    chart: { type: "line" },
-    series: [{ data: formattedData || [] }],
-    xaxis: { type: "datetime" },
-  };
-
-  return (
-    <ReactApexChart
-      options={options}
-      series={options.series}
-      type="line"
-      height="100%"
-    />
-  );
+    return (
+        <ChartCard>
+            <ReactApexChart
+                options={options}
+                series={options.series}
+                type="line"
+                height="100%"
+            />
+        </ChartCard>
+    );
 };
 
 export default ChartLine;
