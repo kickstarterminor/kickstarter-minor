@@ -1,5 +1,5 @@
-import React from "react";
-import leagueLogo from "../assets/lol.svg";
+import React, { useState } from "react";
+import smartLogo from "../assets/smart.svg";
 import { Link } from "react-router-dom";
 
 interface DashboardLayoutProps {
@@ -7,68 +7,88 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="flex h-screen w-full bg-blue-100">
-      {/* Sidebar */}
-      <aside
-        className="w-64 bg-blue-200 border-r p-4 flex flex-col shrink-0"
-        role="complementary"
-      >
-        {/* Logo */}
-        <div className="h-16 bg-blue-200 flex items-center justify-center mb-8 pt-4">
-          <img src={leagueLogo} alt="League of Legends Logo" className="h-16" />
+    <div className="h-screen bg-blue-100 overflow-hidden">
+      {/* ================= MOBILE TOP BAR ================= */}
+      <div className="md:hidden flex items-center justify-between px-4 h-14 bg-blue-200 border-b">
+        <button
+          onClick={() => setOpen(true)}
+          className="material-symbols-outlined text-3xl"
+        >
+          menu
+        </button>
+        <span className="font-bold">Dashboard</span>
+      </div>
+
+      <div className="flex h-[calc(100vh-3.5rem)] md:h-screen">
+        {/* ================= OVERLAY ================= */}
+        {open && (
+          <div
+            className="fixed inset-0 bg-black/40 z-40 md:hidden"
+            onClick={() => setOpen(false)}
+          />
+        )}
+
+        {/* ================= SIDEBAR ================= */}
+        <aside
+          className={`
+            fixed md:static top-0 left-0 z-50
+            h-full w-64 bg-blue-200 border-r p-4
+            transform transition-transform duration-300
+            ${open ? "translate-x-0" : "-translate-x-full"}
+            md:translate-x-0
+          `}
+        >
+          {/* Logo */}
+          <div className="h-16 flex items-center justify-center mb-8">
+            <img src={smartLogo} alt="SmartSleep Logo" className="h-32 mt-8" />
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex flex-col flex-1 space-y-2 bg-blue-100 border-blue-400 border-2 p-4 rounded-lg">
+            <h2 className="font-bold text-black">Menu</h2>
+
+            <Link
+              to="/dashboard"
+              onClick={() => setOpen(false)}
+              className="hover:bg-blue-200 p-2 rounded-lg font-semibold flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">dashboard</span>
+              Dashboard
+            </Link>
+
+            <Link
+              to="/settings"
+              onClick={() => setOpen(false)}
+              className="hover:bg-blue-200 p-2 rounded-lg font-semibold flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">settings</span>
+              Settings
+            </Link>
+
+            <Link
+              to="/"
+              onClick={() => setOpen(false)}
+              className="hover:bg-blue-200 p-2 rounded-lg font-semibold flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">logout</span>
+              Logout
+            </Link>
+          </nav>
+        </aside>
+
+        {/* ================= MAIN CONTENT ================= */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Header */}
+          <header className="hidden md:flex h-24 bg-blue-200 border-b border-l border-blue-400 rounded-bl-2xl items-center justify-center">
+            <h1 className="text-lg font-semibold">Dashboard</h1>
+          </header>
+
+          {/* Page content */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
         </div>
-        {/* Navigation */}
-        <nav className="flex flex-col flex-1 space-y-2 bg-blue-100 border-blue-400 border-2 p-4 rounded-lg pb-12 m-2">
-          <h2 className="text-black text-left p-2.5 font-bold">Menu</h2>
-          <ul role="list" className="flex flex-col space-y-1">
-            <li>
-              <Link
-                to="/dashboard"
-                className="hover:bg-blue-200 p-2 rounded-lg text-blue-900 font-semibold transition flex items-center space-x-2"
-              >
-                <span className="material-symbols-outlined text-black">
-                  dashboard
-                </span>
-                <span>Dashboard</span>
-              </Link>
-            </li>
-            <hr className="border-blue-400 border-t mt-2 mb-2" />
-            <li className="">
-              <Link
-                to="/dashboard"
-                className="hover:bg-blue-200 p-2 rounded-lg text-blue-900 font-semibold transition flex items-center space-x-2"
-              >
-                <span className="material-symbols-outlined text-black">
-                  settings
-                </span>
-                <span>Settings</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/"
-                className="hover:bg-blue-200 p-2 rounded-lg text-blue-900 font-semibold transition flex items-center space-x-2"
-              >
-                <span className="material-symbols-outlined text-black">
-                  logout
-                </span>
-                <span>Logout</span>
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex flex-1 flex-col">
-        {/* Header */}
-        <header className="h-32 bg-blue-200 ml-4 mb-4 p-8 flex items-center justify-center border-b-2 border-l-2 border-blue-400 rounded-b-2xl">
-          <h1 className="text-lg font-semibold">Dashboard Header</h1>
-        </header>
-
-        {/* Main content */}
-        <main className="flex-1 p-6 pt-3 overflow-y-auto">{children}</main>
       </div>
     </div>
   );
