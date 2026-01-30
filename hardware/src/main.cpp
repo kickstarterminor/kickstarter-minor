@@ -12,6 +12,16 @@
 #include "ApiClient.h"
 #include <time.h>
 #include "motor_control.h"
+#include "OTAUpdater.h"
+
+// Configure your OTA server details
+const char* OTA_SERVER_URL = "http://192.168.1.100:3000";  // Change to your server IP/domain
+const char* OTA_BIN_PATH = "/firmware.bin";                 // Path to .bin file on server
+const char* OTA_VERSION_PATH = "/version.txt";              // Path to version.txt on server
+
+
+
+
 
 #define MOTOR_PIN 17
 
@@ -44,10 +54,10 @@ const uint8_t LCD_COLS = 16;
 const uint8_t LCD_ROWS = 2;
 
 // Buttons for alarm UI - active LOW (use INPUT_PULLUP)
-const uint8_t BTN_CORRECT = 13;
-const uint8_t BTN_WRONG   = 10;
-const uint8_t BTN_UP      = 12;
-const uint8_t BTN_DOWN    = 11;
+const uint8_t BTN_CORRECT = 12;
+const uint8_t BTN_WRONG   = 11;
+const uint8_t BTN_UP      = 13;
+const uint8_t BTN_DOWN    = 10;
 
 LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 AlarmUI alarmUi(lcd, BTN_CORRECT, BTN_WRONG, BTN_UP, BTN_DOWN);
@@ -124,7 +134,7 @@ void performScanAndPrint() {
   const char* nodeId = "N03";
   const uint32_t adcMax = 4095u;
   uint8_t sendCount = (totalSensors > 12) ? 12 : totalSensors;
-  printBinaryFrame(gridId, nodeId, sensorValues, sendCount, vref, adcMax);
+  // printBinaryFrame(gridId, nodeId, sensorValues, sendCount, vref, adcMax);
 }
 
 void setup() {
@@ -166,20 +176,49 @@ void setup() {
   motor.begin();
 
   // Connect to Wi-Fi (credentials in credentials.h)
-  Serial.print("Connecting to Wi-Fi '"); Serial.print(WIFI_SSID); Serial.println("'...");
-  WiFi.mode(WIFI_STA);
+  Serial.print("Connecting to Wi-Fi '"); 
+Serial.print(WIFI_SSID); 
+Serial.println("'...");
+
+WiFi.mode(WIFI_STA);
+WiFi.begin(WIFI_SSID, WIFI_PASS);
+Serial.println(WiFi.macAddress());
+
+unsigned long wifiStart = millis();
+while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 30000) {
+  delay(250);
+  Serial.print('.');
+}
+
+if (WiFi.status() == WL_CONNECTED) {
+  Serial.print("\nWi-Fi connected, IP="); 
+  Serial.println(WiFi.localIP());
+  WiFi.setAutoReconnect(true);  // Enable auto-reconnect for future drops
+  WiFi.persistent(true);         // Save credentials
+} else {
+  Serial.println("\nWi-Fi failed to connect - resetting WiFi and retrying...");
+  
+  // Reset WiFi instead of full ESP restart
+  WiFi.disconnect(true);  // true = erase stored config
+  delay(1000);
+  
+  // Retry once more
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  unsigned long wifiStart = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 15000) {
+  wifiStart = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 30000) {
     delay(250);
     Serial.print('.');
   }
+  
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("\nWi-Fi connected, IP="); Serial.println(WiFi.localIP());
+    Serial.print("\nWi-Fi connected on retry, IP="); 
+    Serial.println(WiFi.localIP());
   } else {
-    ESP.restart();
-    Serial.println("\nWi-Fi failed to connect (check credentials). NTP will retry if network becomes available.");
+    Serial.println("\nWi-Fi still failed - performing full restart...");
+    ESP.restart();  // Only restart if retry also fails
   }
+}
+
 
   // Configure timezone for Europe/Amsterdam and start NTP (non-blocking)
   // The TZ string below handles CET/CEST DST rules.

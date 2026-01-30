@@ -7,8 +7,8 @@
 #define CREDENTIALS_H
 
 // Placeholder values. Replace with your network credentials.
-#define WIFI_SSID "My Iphone"
-#define WIFI_PASS "bomba123"
+#define WIFI_SSID "Ziggo0780661"
+#define WIFI_PASS "Zigg@0780661"
 
 #endif // CREDENTIALS_H
 
