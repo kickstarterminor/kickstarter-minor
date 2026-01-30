@@ -26,8 +26,14 @@ export function useGetData() {
       // sum value calculate
       const json: DataSchema[] = await response.json();
 
+      const twelveHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+
       const formattedData: number[][] = json
-        .filter((item) => item.deviceId === "Device002")
+        .filter(
+          (item) =>
+            item.deviceId === "Device002" &&
+            new Date(item.createdAt).getTime() > twelveHoursAgo,
+        )
         .map((item) => {
           // condition to skip if by selecting device
 
