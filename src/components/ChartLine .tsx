@@ -1,22 +1,24 @@
-import React, {useMemo} from "react";
+import  {type JSX, useMemo} from "react";
 import type {ApexOptions} from "apexcharts";
 import ReactApexChart from "react-apexcharts";
-import {useGetData} from "../hooks/fetch";
+import {type DataSchema} from "../hooks/fetch";
 import ChartCard from "../layouts/ChartCard.tsx";
 
-const ChartLine: React.FC = () => {
-    const {jsonData} = useGetData(); //useGetData();
+export type ChartLineProps = {
+    jsonData: DataSchema[]|null;
+}
 
+const ChartLine: (props: ChartLineProps) => JSX.Element = (props:ChartLineProps) => {
     // Keep the "time window" stable for each render cycle; recompute when the hook data changes.
     const seventyTwoHoursAgo = useMemo(
         () => Date.now() - 72 * 60 * 60 * 1000,
-        [jsonData],
+        [props.jsonData],
     );
 
     const formattedData: number[][] = useMemo(() => {
-        if (!Array.isArray(jsonData)) return [];
+        if (!Array.isArray(props.jsonData)) return [];
 
-        return jsonData
+        return props.jsonData
             .filter(
                 (item) =>
                     item.deviceId === "Device002" &&
@@ -33,7 +35,7 @@ const ChartLine: React.FC = () => {
                 const timestamp = new Date(item.createdAt).getTime();
                 return [timestamp, sum];
             });
-    }, [jsonData, seventyTwoHoursAgo]);
+    }, [props.jsonData, seventyTwoHoursAgo]);
 
     const options: ApexOptions = useMemo(
         () => ({

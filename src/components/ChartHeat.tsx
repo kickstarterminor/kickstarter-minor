@@ -1,19 +1,21 @@
-import React, {useMemo} from "react";
+import {type JSX, useMemo} from "react";
 import type {ApexOptions} from "apexcharts";
 import ReactApexChart from "react-apexcharts";
-import {useGetData} from "../hooks/fetch";
 import ChartCard from "../layouts/ChartCard.tsx";
+import type {DataSchema} from "../hooks/fetch.ts";
 
-const ChartHeat: React.FC = () => {
-    const {jsonData} = useGetData();
+export type ChartHeatProps = {
+    jsonData: DataSchema[] | null;
+}
 
+const ChartHeat: (props: ChartHeatProps) => JSX.Element = (props: ChartHeatProps) => {
     const latest = useMemo(() => {
-        if (!Array.isArray(jsonData) || jsonData.length === 0) return null;
+        if (!Array.isArray(props.jsonData) || props.jsonData.length === 0) return null;
 
-        return jsonData.reduce((latestItem, item) =>
+        return props.jsonData.reduce((latestItem, item) =>
             new Date(item.createdAt) > new Date(latestItem.createdAt) ? item : latestItem,
         );
-    }, [jsonData]);
+    }, [props.jsonData]);
 
     const series = useMemo(() => {
         if (!latest) return [];
