@@ -1,4 +1,5 @@
 import React, {useState} from "react";
+import logo from "../assets/Logo.png";
 import {Link} from "react-router-dom";
 import {COLORS} from "../colors.ts";
 
@@ -47,7 +48,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({children}) => {
                         className={`flex flex-col flex-1 space-y-2 ${COLORS.bgMain} ${COLORS.borderAccent} border-2 p-4 rounded-lg`}>
                         {/* Logo */}
                         <div className="h-16 flex items-center justify-center mb-8">
-                            <img src="src/assets/Logo.png" alt="SmartSleep Logo" className="h-32 mt-8"/>
+                            <img src={logo} alt="SmartSleep Logo" className="h-32 mt-8" />
                         </div>
 
                         <Link
