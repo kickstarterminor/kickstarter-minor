@@ -1,12 +1,12 @@
 import React from "react";
+import {COLORS} from "../colors.ts";
 
 const ChartCard: React.FC<{
   children: React.ReactNode;
-  className?: string;
-}> = ({ children, className = "" }) => {
+}> = ({ children }) => {
   return (
     <div
-      className={`lg:col-span-2 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 ${className}`}
+      className={`lg:col-span-2 p-4 ${COLORS.bgMain}  shadow-sm border ${COLORS.hover}`}
     >
       {children}
     </div>

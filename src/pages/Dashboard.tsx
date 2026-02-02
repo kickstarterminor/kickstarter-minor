@@ -1,30 +1,18 @@
-import React, {useEffect} from "react";
+import React from "react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import DeviceCard from "../layouts/DeviceCard.tsx";
-import {useGetData} from "../hooks/fetch.ts";
+import {COLORS} from "../colors.ts";
 
-const Dashboard: React.FC = () => {
-    const {jsonData, refetch} = useGetData();
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            refetch();
-            console.log("refetch");
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [refetch]);
-
-    return (
+const Dashboard: React.FC = () =>
+    (
         <DashboardLayout>
-            <div className="p-6 bg-gray-50 min-h-screen rounded-2xl flex gap-6">
-                <DeviceCard deviceId={"device001"} jsonData={jsonData}/>
-                <DeviceCard deviceId={"device002"} jsonData={jsonData}/>
-                <DeviceCard deviceId={"device003"} jsonData={jsonData}/>
+            <div className={`p-6 ${COLORS.bgPanel} rounded-2xl flex gap-6 items-start h-fit`}>
+                <DeviceCard deviceId={"device001"} name={"Meneer Jansen"}/>
+                <DeviceCard deviceId={"device002"} name={"Mevrouw Jansen"}/>
+                <DeviceCard deviceId={"device003"} name={"Mevrouw Julsen"}/>
             </div>
         </DashboardLayout>
     );
-};
 
 export default Dashboard;

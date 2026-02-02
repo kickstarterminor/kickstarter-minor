@@ -6,6 +6,7 @@ import ChartCard from "../layouts/ChartCard.tsx";
 
 export type ChartLineProps = {
     jsonData: DataSchema[]|null;
+    slice:number;
 }
 
 const ChartLine: (props: ChartLineProps) => JSX.Element = (props:ChartLineProps) => {
@@ -19,9 +20,9 @@ const ChartLine: (props: ChartLineProps) => JSX.Element = (props:ChartLineProps)
         if (!Array.isArray(props.jsonData)) return [];
 
         return props.jsonData
+            .slice(0,props.slice)
             .filter(
                 (item) =>
-                    item.deviceId === "Device002" &&
                     new Date(item.createdAt).getTime() > seventyTwoHoursAgo,
             )
             .map((item) => {

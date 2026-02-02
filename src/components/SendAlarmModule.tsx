@@ -1,5 +1,7 @@
 import {type JSX, useCallback, useEffect, useState} from "react";
 import ChartCard from "../layouts/ChartCard.tsx";
+import Button from "./Button.tsx";
+import {COLORS} from "../colors.ts";
 
 type SendAlarmProps = {
     deviceId: string;
@@ -40,14 +42,14 @@ const SendAlarmModule: (props: SendAlarmProps) => JSX.Element = (props: SendAlar
         <ChartCard>
             {status ?
                 <p>{status}</p> :
-                <button
+                <Button
                     type="button"
                     title="Send Alarm"
                     onClick={sendAlarm}
-                    className="bg-blue-500 rounded-2xl px-4 py-2 text-white"
+                    className={`${COLORS.bgPanel} rounded-2xl px-4 py-2 text-white`}
                 >
                     Send Alarm
-                </button>
+                </Button>
             }
         </ChartCard>
     );
